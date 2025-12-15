@@ -17,7 +17,7 @@ interface DashboardHeaderProps {
   totalCount: number
   filteredCount: number
   activeFilterCount: number
-  onExport: (format: "csv" | "json") => void
+  onExport: (format: "excel" | "json") => void
   onOpenMobileFilter: () => void
   viewMode: "table" | "grid"
   onViewModeChange: (mode: "table" | "grid") => void
@@ -171,7 +171,7 @@ export function DashboardHeader({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => onExport("csv")}>Export as CSV</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onExport("excel")}>Export as Excel</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onExport("json")}>Export as JSON</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

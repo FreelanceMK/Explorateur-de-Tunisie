@@ -1,8 +1,22 @@
 // Static credentials (in production, this would be validated against a secure backend)
-const VALID_CREDENTIALS = {
-  email: "karimomrane7@gmail.com",
-  password: "12345678",
-}
+const VALID_CREDENTIALS = [
+  {
+    email: "karimomrane7@gmail.com",
+    password: "12345678",
+  },
+  {
+    email: "communication@ste-stecom.com",
+    password: "Stecom2025!",
+  },
+  {
+    email: "marketing@ste-stecom.com",
+    password: "Marketing2025!",
+  },
+  {
+    email: "amari.jamel@ste-stecom.com",
+    password: "Jamel2025!",
+  },
+]
 
 export interface AuthSession {
   email: string
@@ -17,7 +31,9 @@ const SESSION_DURATION = 30 * 24 * 60 * 60 * 1000 // 30 days in milliseconds
  * Validate login credentials
  */
 export function validateCredentials(email: string, password: string): boolean {
-  return email === VALID_CREDENTIALS.email && password === VALID_CREDENTIALS.password
+  return VALID_CREDENTIALS.some(
+    (cred) => cred.email === email && cred.password === password
+  )
 }
 
 /**

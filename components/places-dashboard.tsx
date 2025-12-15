@@ -10,6 +10,7 @@ import { MobileFilterDrawer } from "./mobile-filter-drawer"
 import { loadPlacesFromData, loadMorePlaces, getLoadStatus } from "@/lib/load-data"
 import { useIsMobile } from "@/hooks/use-mobile"
 import type { Place, FilterState, SortState } from "@/lib/types"
+import * as XLSX from "xlsx"
 
 const initialFilters: FilterState = {
   search: "",
@@ -142,7 +143,7 @@ export function PlacesDashboard() {
   }, [filters])
 
   const handleExport = useCallback(
-    (format: "csv" | "json") => {
+    (format: "excel" | "json") => {
       const dataToExport = sortedPlaces
 
       if (format === "json") {
@@ -156,30 +157,39 @@ export function PlacesDashboard() {
         a.click()
         URL.revokeObjectURL(url)
       } else {
+        // Prepare data for Excel
         const headers = ["Title", "Category", "Governorate", "Address", "Rating", "Reviews", "Phone", "Website"]
-        const csvContent = [
-          headers.join(","),
-          ...dataToExport.map((place) =>
-            [
-              `"${place.title}"`,
-              `"${place.category}"`,
-              `"${place.governorate}"`,
-              `"${place.address}"`,
-              place.rating,
-              place.reviews,
-              `"${place.phoneNumber || ""}"`,
-              `"${place.website || ""}"`,
-            ].join(","),
-          ),
-        ].join("\n")
+        const excelData = dataToExport.map((place) => ({
+          Title: place.title,
+          Category: place.category,
+          Governorate: place.governorate,
+          Address: place.address,
+          Rating: place.rating,
+          Reviews: place.reviews,
+          Phone: place.phoneNumber || "",
+          Website: place.website || "",
+        }))
 
-        const blob = new Blob([csvContent], { type: "text/csv" })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement("a")
-        a.href = url
-        a.download = "tunisia-places.csv"
-        a.click()
-        URL.revokeObjectURL(url)
+        // Create workbook and worksheet
+        const worksheet = XLSX.utils.json_to_sheet(excelData)
+        const workbook = XLSX.utils.book_new()
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Places")
+
+        // Set column widths for better formatting
+        const columnWidths = [
+          { wch: 30 }, // Title
+          { wch: 20 }, // Category
+          { wch: 15 }, // Governorate
+          { wch: 40 }, // Address
+          { wch: 8 },  // Rating
+          { wch: 10 }, // Reviews
+          { wch: 15 }, // Phone
+          { wch: 30 }, // Website
+        ]
+        worksheet["!cols"] = columnWidths
+
+        // Generate Excel file and trigger download
+        XLSX.writeFile(workbook, "tunisia-places.xlsx")
       }
     },
     [sortedPlaces],
