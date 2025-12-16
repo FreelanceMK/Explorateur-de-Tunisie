@@ -183,29 +183,28 @@ export function FilterSidebarContent({
             const isSelected = filters.categories.includes(category)
             const count = categoryCounts[category] || 0
             return (
-              <button
+              <div
                 key={category}
+                className="flex items-center justify-between gap-2 rounded-lg px-3 py-2 hover:bg-secondary/50 transition-all cursor-pointer"
                 onClick={() => toggleCategory(category)}
-                className={cn(
-                  "flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm transition-all",
-                  isSelected
-                    ? `${colors.bg} ${colors.text}`
-                    : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground",
-                )}
               >
-                <div className="flex items-center gap-2">
-                  <div
-                    className={cn(
-                      "h-2 w-2 rounded-full",
-                      isSelected ? colors.text.replace("text-", "bg-") : "bg-muted-foreground/50",
-                    )}
+                <div className="flex items-center gap-3 flex-1">
+                  <Checkbox
+                    checked={isSelected}
+                    onCheckedChange={() => toggleCategory(category)}
+                    className="border-border"
                   />
-                  <span>{category}</span>
+                  <div className="flex items-center gap-2">
+                    <div className={cn("h-2 w-2 rounded-full", colors.text.replace("text-", "bg-"))} />
+                    <span className={cn("text-sm", isSelected ? "font-medium text-foreground" : "text-muted-foreground")}>
+                      {category}
+                    </span>
+                  </div>
                 </div>
                 <Badge variant="secondary" className="h-5 px-1.5 text-xs font-mono">
                   {count.toLocaleString()}
                 </Badge>
-              </button>
+              </div>
             )
           })}
         </CollapsibleContent>
@@ -224,24 +223,25 @@ export function FilterSidebarContent({
             const isSelected = filters.governorates.includes(governorate)
             const count = governorateCounts[governorate] || 0
             return (
-              <button
+              <div
                 key={governorate}
+                className="flex items-center justify-between gap-2 rounded-lg px-3 py-2 hover:bg-secondary/50 transition-all cursor-pointer"
                 onClick={() => toggleGovernorate(governorate)}
-                className={cn(
-                  "flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm transition-all",
-                  isSelected
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground",
-                )}
               >
-                <div className="flex items-center gap-2">
-                  <div className={cn("h-2 w-2 rounded-full", isSelected ? "bg-primary" : "bg-muted-foreground/50")} />
-                  <span>{governorate}</span>
+                <div className="flex items-center gap-3 flex-1">
+                  <Checkbox
+                    checked={isSelected}
+                    onCheckedChange={() => toggleGovernorate(governorate)}
+                    className="border-border"
+                  />
+                  <span className={cn("text-sm", isSelected ? "font-medium text-foreground" : "text-muted-foreground")}>
+                    {governorate}
+                  </span>
                 </div>
                 <Badge variant="secondary" className="h-5 px-1.5 text-xs font-mono">
                   {count.toLocaleString()}
                 </Badge>
-              </button>
+              </div>
             )
           })}
         </CollapsibleContent>
