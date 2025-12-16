@@ -47,12 +47,16 @@ export async function GET(request: NextRequest) {
       ]
     }
 
-    if (category && category !== 'all') {
-      where.category = category
+    // Handle multiple categories
+    const categories = searchParams.getAll('category').filter(c => c && c !== 'all')
+    if (categories.length > 0) {
+      where.category = { in: categories }
     }
 
-    if (governorate && governorate !== 'all') {
-      where.governorate = governorate
+    // Handle multiple governorates
+    const governorates = searchParams.getAll('governorate').filter(g => g && g !== 'all')
+    if (governorates.length > 0) {
+      where.governorate = { in: governorates }
     }
 
     if (minRating || maxRating) {
