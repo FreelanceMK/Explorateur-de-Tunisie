@@ -3,10 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "node ./node_modules/next/dist/bin/next build",
+    "build": "prisma generate && node ./node_modules/next/dist/bin/next build",
     "dev": "node ./node_modules/next/dist/bin/next dev",
     "lint": "eslint .",
     "start": "node ./node_modules/next/dist/bin/next start",
+    "postinstall": "prisma generate",
     "prisma:generate": "node ./node_modules/prisma/build/index.js generate",
     "prisma:studio": "node ./node_modules/prisma/build/index.js studio",
     "db:import": "node ./node_modules/tsx/dist/cli.mjs scripts/import-data.ts"
