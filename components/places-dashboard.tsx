@@ -5,12 +5,16 @@ import { FilterSidebar } from "./filter-sidebar"
 import { PlacesTable } from "./places-table"
 import { PlacesGrid } from "./places-grid"
 import { PlaceDetailsModal } from "./place-details-modal"
+import { PlaceFormModal } from "./place-form-modal"
 import { DashboardHeader } from "./dashboard-header"
 import { MobileFilterDrawer } from "./mobile-filter-drawer"
-import { loadPlacesFromData, loadMorePlaces, getLoadStatus } from "@/lib/load-data"
+import { StatisticsPanel } from "./statistics-panel"
 import { useIsMobile } from "@/hooks/use-mobile"
+import { useAdmin } from "@/lib/admin-context"
 import type { Place, FilterState, SortState } from "@/lib/types"
 import * as XLSX from "xlsx"
+import { Button } from "@/components/ui/button"
+import { Plus } from "lucide-react"
 
 const initialFilters: FilterState = {
   search: "",
@@ -31,7 +35,9 @@ const initialSort: SortState = {
 
 export function PlacesDashboard() {
   const isMobileOrTablet = typeof window !== "undefined" && window.innerWidth < 1024
-  const [places] = useState<Place[]>(loadPlacesFromData())
+  const { isAdminMode, isAddModalOpen, setIsAddModalOpen, isEditModalOpen, setIsEditModalOpen, editingPlace } = useAdmin()
+  const [places, setPlaces] = useState<Place[]>([])
+  const [allPlacesForFilters, setAllPlacesForFilters] = useState<Place[]>([])
   const [filters, setFilters] = useState<FilterState>(initialFilters)
   const [sort, setSort] = useState<SortState>(initialSort)
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null)
@@ -42,6 +48,115 @@ export function PlacesDashboard() {
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false)
   const [viewMode, setViewMode] = useState<"table" | "grid">(isMobileOrTablet ? "grid" : "table")
   const [showExportButton, setShowExportButton] = useState(false)
+  const [totalItems, setTotalItems] = useState(0)
+  const [totalPlaces, setTotalPlaces] = useState(0)
+  const [showStats, setShowStats] = useState(false)
+  const [filterStats, setFilterStats] = useState<{
+    categories: Record<string, number>
+    governorates: Record<string, number>
+    withPhone: number
+    withWebsite: number
+  } | null>(null)
+
+  // Fetch places from API with filters and pagination
+  const fetchPlaces = useCallback(async () => {
+    setIsLoading(true)
+    try {
+      const params = new URLSearchParams()
+      
+      // Add pagination params
+      params.append('page', currentPage.toString())
+      params.append('limit', itemsPerPage.toString())
+      
+      // Add sort params
+      params.append('sortBy', sort.field)
+      params.append('sortOrder', sort.direction)
+      
+      // Add filter params
+      if (filters.search) params.append('search', filters.search)
+      if (filters.categories.length > 0) {
+        filters.categories.forEach(cat => params.append('category', cat))
+      }
+      if (filters.governorates.length > 0) {
+        filters.governorates.forEach(gov => params.append('governorate', gov))
+      }
+      if (filters.ratingMin > 0) params.append('ratingMin', filters.ratingMin.toString())
+      if (filters.ratingMax < 5) params.append('ratingMax', filters.ratingMax.toString())
+      if (filters.reviewsMin > 0) params.append('reviewsMin', filters.reviewsMin.toString())
+      if (filters.reviewsMax < 10000) params.append('reviewsMax', filters.reviewsMax.toString())
+      if (filters.hasPhone) params.append('hasPhone', 'true')
+      if (filters.hasWebsite) params.append('hasWebsite', 'true')
+
+      const response = await fetch(`/api/places?${params.toString()}`)
+      if (!response.ok) throw new Error('Failed to fetch places')
+      
+      const data = await response.json()
+      setPlaces(data.places || [])
+      setTotalItems(data.total || 0)
+      setTotalPlaces(data.totalAll || data.total || 0)
+    } catch (error) {
+      console.error('Error fetching places:', error)
+      setPlaces([])
+      setTotalItems(0)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [currentPage, itemsPerPage, sort, filters])
+
+  // Fetch all places for filter sidebar (categories and governorates)
+  const fetchAllPlacesForFilters = useCallback(async () => {
+    try {
+      const response = await fetch('/api/places/stats')
+      if (!response.ok) throw new Error('Failed to fetch stats for filters')
+      
+      const data = await response.json()
+      
+      // Convert arrays to maps for quick lookup
+      const categoriesMap: Record<string, number> = {}
+      data.categories?.forEach((cat: any) => {
+        categoriesMap[cat.name] = cat.count
+      })
+      
+      const governoratesMap: Record<string, number> = {}
+      data.governorates?.forEach((gov: any) => {
+        governoratesMap[gov.name] = gov.count
+      })
+      
+      setFilterStats({
+        categories: categoriesMap,
+        governorates: governoratesMap,
+        withPhone: data.contactInfo?.withPhone || 0,
+        withWebsite: data.contactInfo?.withWebsite || 0,
+      })
+      setTotalPlaces(data.total || 0)
+      setAllPlacesForFilters([]) // No longer needed since we use filterStats
+    } catch (error) {
+      console.error('Error fetching stats for filters:', error)
+      setFilterStats(null)
+      setAllPlacesForFilters([])
+    }
+  }, [])
+
+  // Initial data fetch
+  useEffect(() => {
+    fetchPlaces()
+  }, [fetchPlaces])
+
+  // Fetch all places once for filter sidebar
+  useEffect(() => {
+    fetchAllPlacesForFilters()
+  }, [fetchAllPlacesForFilters])
+
+  // Listen for refresh events from admin context
+  useEffect(() => {
+    const handleRefresh = () => {
+      fetchPlaces()
+      fetchAllPlacesForFilters()
+    }
+    
+    window.addEventListener('refreshPlaces', handleRefresh)
+    return () => window.removeEventListener('refreshPlaces', handleRefresh)
+  }, [fetchPlaces, fetchAllPlacesForFilters])
 
   useEffect(() => {
     if (viewMode === "grid") {
@@ -52,64 +167,8 @@ export function PlacesDashboard() {
     setCurrentPage(1)
   }, [viewMode])
 
-  const filteredPlaces = useMemo(() => {
-    return places.filter((place) => {
-      if (filters.search) {
-        const searchLower = filters.search.toLowerCase()
-        const matchesSearch =
-          (place.title?.toLowerCase() || "").includes(searchLower) ||
-          (place.address?.toLowerCase() || "").includes(searchLower) ||
-          (place.category?.toLowerCase() || "").includes(searchLower)
-        if (!matchesSearch) return false
-      }
-
-      if (filters.categories.length > 0) {
-        if (!filters.categories.includes(place.category)) return false
-      }
-
-      if (filters.governorates.length > 0) {
-        if (!filters.governorates.includes(place.governorate)) return false
-      }
-
-      if (place.rating < filters.ratingMin || place.rating > filters.ratingMax) {
-        return false
-      }
-
-      if (place.reviews < filters.reviewsMin || place.reviews > filters.reviewsMax) {
-        return false
-      }
-
-      if (filters.hasPhone && !place.phoneNumber) return false
-      if (filters.hasWebsite && !place.website) return false
-
-      return true
-    })
-  }, [places, filters])
-
-  const sortedPlaces = useMemo(() => {
-    return [...filteredPlaces].sort((a, b) => {
-      let comparison = 0
-      switch (sort.field) {
-        case "title":
-          comparison = a.title.localeCompare(b.title)
-          break
-        case "rating":
-          comparison = a.rating - b.rating
-          break
-        case "reviews":
-          comparison = a.reviews - b.reviews
-          break
-      }
-      return sort.direction === "asc" ? comparison : -comparison
-    })
-  }, [filteredPlaces, sort])
-
-  const paginatedPlaces = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage
-    return sortedPlaces.slice(startIndex, startIndex + itemsPerPage)
-  }, [sortedPlaces, currentPage, itemsPerPage])
-
-  const totalPages = Math.ceil(sortedPlaces.length / itemsPerPage)
+  // Remove client-side filtering and sorting - now handled by API
+  const totalPages = Math.ceil(totalItems / itemsPerPage)
 
   const handlePlaceClick = useCallback((place: Place) => {
     setSelectedPlace(place)
@@ -144,7 +203,7 @@ export function PlacesDashboard() {
 
   const handleExport = useCallback(
     (format: "excel" | "json") => {
-      const dataToExport = sortedPlaces
+      const dataToExport = places
 
       if (format === "json") {
         const blob = new Blob([JSON.stringify(dataToExport, null, 2)], {
@@ -192,79 +251,86 @@ export function PlacesDashboard() {
         XLSX.writeFile(workbook, "tunisia-places.xlsx")
       }
     },
-    [sortedPlaces],
+    [places],
   )
 
   return (
     <div className="min-h-screen bg-background">
       <DashboardHeader
-        totalCount={places.length}
-        filteredCount={sortedPlaces.length}
+        totalCount={totalPlaces}
+        filteredCount={totalItems}
         activeFilterCount={activeFilterCount}
         onExport={handleExport}
         onOpenMobileFilter={() => setIsMobileFilterOpen(true)}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
         showExportButton={showExportButton}
+        onToggleStats={() => setShowStats(!showStats)}
+        showStats={showStats}
       />
 
-      <div className="flex">
-        <FilterSidebar
-          filters={filters}
-          allPlaces={places}
-          onFiltersChange={(newFilters) => {
-            setFilters(newFilters)
-            setCurrentPage(1)
-          }}
-          onClearFilters={handleClearFilters}
-          activeFilterCount={activeFilterCount}
-          onFilterTitleClick={handleFilterTitleClick}
-        />
+      {showStats ? (
+        <StatisticsPanel />
+      ) : (
+        <div className="flex">
+          <FilterSidebar
+            filters={filters}
+            allPlaces={allPlacesForFilters}
+            filterStats={filterStats}
+            onFiltersChange={(newFilters) => {
+              setFilters(newFilters)
+              setCurrentPage(1)
+            }}
+            onClearFilters={handleClearFilters}
+            activeFilterCount={activeFilterCount}
+            onFilterTitleClick={handleFilterTitleClick}
+          />
 
-        <main className="flex-1 md:ml-72 overflow-y-auto" style={{ height: 'calc(100vh - 4rem)' }}>
-          <div className="p-6">
-          {viewMode === "table" ? (
-            <PlacesTable
-              places={paginatedPlaces}
-              isLoading={isLoading}
-              sort={sort}
-              onSortChange={setSort}
-              onPlaceClick={handlePlaceClick}
-              currentPage={currentPage}
-              totalPages={totalPages}
-              itemsPerPage={itemsPerPage}
-              totalItems={sortedPlaces.length}
-              onPageChange={setCurrentPage}
-              onItemsPerPageChange={(items) => {
-                setItemsPerPage(items)
-                setCurrentPage(1)
-              }}
-            />
-          ) : (
-            <PlacesGrid
-              places={paginatedPlaces}
-              isLoading={isLoading}
-              onPlaceClick={handlePlaceClick}
-              currentPage={currentPage}
-              totalPages={totalPages}
-              itemsPerPage={itemsPerPage}
-              totalItems={sortedPlaces.length}
-              onPageChange={setCurrentPage}
-              onItemsPerPageChange={(items) => {
-                setItemsPerPage(items)
-                setCurrentPage(1)
-              }}
-            />
-          )}
-          </div>
-        </main>
-      </div>
+          <main className="flex-1 md:ml-72 overflow-y-auto" style={{ height: 'calc(100vh - 4rem)' }}>
+            <div className="p-6">
+            {viewMode === "table" ? (
+              <PlacesTable
+                places={places}
+                isLoading={isLoading}
+                sort={sort}
+                onSortChange={setSort}
+                onPlaceClick={handlePlaceClick}
+                currentPage={currentPage}
+                totalPages={totalPages}
+                itemsPerPage={itemsPerPage}
+                totalItems={totalItems}
+                onPageChange={setCurrentPage}
+                onItemsPerPageChange={(items) => {
+                  setItemsPerPage(items)
+                  setCurrentPage(1)
+                }}
+              />
+            ) : (
+              <PlacesGrid
+                places={places}
+                isLoading={isLoading}
+                onPlaceClick={handlePlaceClick}
+                currentPage={currentPage}
+                totalPages={totalPages}
+                itemsPerPage={itemsPerPage}
+                totalItems={totalItems}
+                onPageChange={setCurrentPage}
+                onItemsPerPageChange={(items) => {
+                  setItemsPerPage(items)
+                  setCurrentPage(1)
+                }}
+              />
+            )}
+            </div>
+          </main>
+        </div>
+      )}
 
       <PlaceDetailsModal
         place={selectedPlace}
         isOpen={isModalOpen}
         onClose={handleCloseModal}
-        nearbyPlaces={places
+        nearbyPlaces={allPlacesForFilters
           .filter((p) => p.placeId !== selectedPlace?.placeId && p.governorate === selectedPlace?.governorate)
           .slice(0, 5)}
       />
@@ -273,7 +339,8 @@ export function PlacesDashboard() {
         isOpen={isMobileFilterOpen}
         onClose={() => setIsMobileFilterOpen(false)}
         filters={filters}
-        allPlaces={places}
+        allPlaces={allPlacesForFilters}
+        filterStats={filterStats}
         onFiltersChange={(newFilters) => {
           setFilters(newFilters)
           setCurrentPage(1)
@@ -281,6 +348,29 @@ export function PlacesDashboard() {
         onClearFilters={handleClearFilters}
         activeFilterCount={activeFilterCount}
       />
+
+      <PlaceFormModal
+        open={isAddModalOpen}
+        onOpenChange={setIsAddModalOpen}
+        mode="add"
+      />
+
+      <PlaceFormModal
+        open={isEditModalOpen}
+        onOpenChange={setIsEditModalOpen}
+        place={editingPlace}
+        mode="edit"
+      />
+
+      {isAdminMode && (
+        <Button
+          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all z-50"
+          size="icon"
+          onClick={() => setIsAddModalOpen(true)}
+        >
+          <Plus className="h-6 w-6" />
+        </Button>
+      )}
     </div>
   )
 }

@@ -20,6 +20,12 @@ interface FilterSidebarContentProps {
   onFiltersChange: (filters: FilterState) => void
   onClearFilters: () => void
   activeFilterCount: number
+  filterStats?: {
+    categories: Record<string, number>
+    governorates: Record<string, number>
+    withPhone: number
+    withWebsite: number
+  }
 }
 
 export function FilterSidebarContent({
@@ -28,6 +34,7 @@ export function FilterSidebarContent({
   onFiltersChange,
   onClearFilters,
   activeFilterCount,
+  filterStats,
 }: FilterSidebarContentProps) {
   const [isCategoriesOpen, setIsCategoriesOpen] = useState(true)
   const [isGovernoratesOpen, setIsGovernoratesOpen] = useState(false)
@@ -72,30 +79,39 @@ export function FilterSidebarContent({
     }
   }
   
-  // Calculate category counts from all places
+  // Calculate category counts from all places or use pre-calculated stats
   const categoryCounts = useMemo(() => {
+    if (filterStats?.categories) {
+      return filterStats.categories
+    }
     const counts: Record<string, number> = {}
     allPlaces.forEach(place => {
       counts[place.category] = (counts[place.category] || 0) + 1
     })
     return counts
-  }, [allPlaces])
+  }, [allPlaces, filterStats])
   
-  // Calculate governorate counts from all places
+  // Calculate governorate counts from all places or use pre-calculated stats
   const governorateCounts = useMemo(() => {
+    if (filterStats?.governorates) {
+      return filterStats.governorates
+    }
     const counts: Record<string, number> = {}
     allPlaces.forEach(place => {
       counts[place.governorate] = (counts[place.governorate] || 0) + 1
     })
     return counts
-  }, [allPlaces])
+  }, [allPlaces, filterStats])
   
-  // Calculate option counts (phone and website)
+  // Calculate option counts (phone and website) or use pre-calculated stats
   const optionCounts = useMemo(() => {
+    if (filterStats) {
+      return { phone: filterStats.withPhone, website: filterStats.withWebsite }
+    }
     const withPhone = allPlaces.filter(place => place.phoneNumber).length
     const withWebsite = allPlaces.filter(place => place.website).length
     return { phone: withPhone, website: withWebsite }
-  }, [allPlaces])
+  }, [allPlaces, filterStats])
 
   // Debounce search to improve performance
   const debouncedSearch = useDebounce((value: string) => {

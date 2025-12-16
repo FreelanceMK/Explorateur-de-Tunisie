@@ -14,6 +14,12 @@ interface MobileFilterDrawerProps {
   onFiltersChange: (filters: FilterState) => void
   onClearFilters: () => void
   activeFilterCount: number
+  filterStats?: {
+    categories: Record<string, number>
+    governorates: Record<string, number>
+    withPhone: number
+    withWebsite: number
+  }
 }
 
 export function MobileFilterDrawer({
@@ -24,6 +30,7 @@ export function MobileFilterDrawer({
   onFiltersChange,
   onClearFilters,
   activeFilterCount,
+  filterStats,
 }: MobileFilterDrawerProps) {
   return (
     <>
@@ -56,6 +63,7 @@ export function MobileFilterDrawer({
             onFiltersChange={onFiltersChange}
             onClearFilters={onClearFilters}
             activeFilterCount={activeFilterCount}
+            filterStats={filterStats}
           />
         </div>
       </div>

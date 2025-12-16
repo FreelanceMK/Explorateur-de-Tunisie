@@ -1,0 +1,46 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("MONGODB_URI")
+}
+
+model Place {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  title         String
+  address       String
+  category      String
+  governorate   String
+  latitude      Float
+  longitude     Float
+  rating        Float
+  reviews       Int
+  position      Int
+  phoneNumber   String?
+  website       String?
+  cid           String?
+  placeId       String?  @unique
+  openingHours  Json?
+  priceRange    String?
+  gridLat       Float?   @map("grid_lat")
+  gridLng       Float?   @map("grid_lng")
+  type          String?
+  types         String[]
+  ratingCount   Int?
+  thumbnailUrl  String?
+  fid           String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("places")
+  @@index([category])
+  @@index([governorate])
+  @@index([category, governorate])
+  @@index([rating])
+  @@index([title])
+}

@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
+import { AdminProvider } from "@/lib/admin-context"
 
 const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
@@ -60,7 +61,9 @@ export default function RootLayout({
       </head>
       <body className={`font-sans antialiased ${_geist.className}`}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
-          {children}
+          <AdminProvider>
+            {children}
+          </AdminProvider>
         </ThemeProvider>
         <script
           dangerouslySetInnerHTML={{

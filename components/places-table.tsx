@@ -11,6 +11,8 @@ import {
   ChevronLeft,
   ChevronRight,
   MapPinOff,
+  Edit,
+  Trash2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -21,6 +23,10 @@ import { CATEGORY_COLORS, DEFAULT_CATEGORY_COLOR } from "@/lib/constants"
 import type { Place, SortState, SortField } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { t } from "@/lib/translations"
+import { useAdmin } from "@/lib/admin-context"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
+import { useState } from "react"
+import { toast } from "sonner"
 
 interface PlacesTableProps {
   places: Place[]
@@ -49,6 +55,34 @@ export function PlacesTable({
   onPageChange,
   onItemsPerPageChange,
 }: PlacesTableProps) {
+  const { isAdminMode, deletePlace, setEditingPlace, setIsEditModalOpen } = useAdmin()
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [placeToDelete, setPlaceToDelete] = useState<Place | null>(null)
+
+  const handleEdit = (e: React.MouseEvent, place: Place) => {
+    e.stopPropagation()
+    setEditingPlace(place)
+    setIsEditModalOpen(true)
+  }
+
+  const handleDeleteClick = (e: React.MouseEvent, place: Place) => {
+    e.stopPropagation()
+    setPlaceToDelete(place)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!placeToDelete || !placeToDelete.id) return
+
+    try {
+      await deletePlace(placeToDelete.id)
+      toast.success("Endroit supprimé avec succès!")
+      setDeleteDialogOpen(false)
+      setPlaceToDelete(null)
+    } catch (error) {
+      toast.error("Erreur lors de la suppression")
+    }
+  }
   const handleSort = (field: SortField) => {
     if (sort.field === field) {
       onSortChange({
@@ -262,17 +296,39 @@ export function PlacesTable({
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        onPlaceClick(place)
-                      }}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onPlaceClick(place)
+                        }}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      {isAdminMode && (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950"
+                            onClick={(e) => handleEdit(e, place)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
+                            onClick={(e) => handleDeleteClick(e, place)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               )
@@ -280,6 +336,23 @@ export function PlacesTable({
           </TableBody>
         </Table>
       </div>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir supprimer "{placeToDelete?.title}" ? Cette action est irréversible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-red-500 hover:bg-red-600">
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Pagination */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
