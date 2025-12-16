@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils"
 import { t } from "@/lib/translations"
 import { useAdmin } from "@/lib/admin-context"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
+import { LazyImage } from "./lazy-image"
 import { useState } from "react"
 import { toast } from "sonner"
 
@@ -128,8 +129,7 @@ export function PlacesGrid({
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
         {places.map((place, index) => {
           const categoryColors = CATEGORY_COLORS[place.category] || DEFAULT_CATEGORY_COLOR
-          const fallbackImage = CATEGORY_IMAGES[place.category] || CATEGORY_IMAGES["Restaurant"]
-          const thumbnailUrl = place.thumbnailUrl || fallbackImage
+          const categoryImage = CATEGORY_IMAGES[place.category] || CATEGORY_IMAGES["Restaurant"]
           
           // Generate stable unique key for React
           const uniqueKey = place.placeId || place.cid || place.fid || `${index}-${place.title}`
@@ -141,16 +141,11 @@ export function PlacesGrid({
               onClick={() => onPlaceClick(place)}
             >
               <div className="relative h-32 w-full overflow-hidden">
-                <img
-                  src={thumbnailUrl || "/placeholder.svg"}
+                <LazyImage
+                  src={place.thumbnailUrl || categoryImage}
+                  fallback={categoryImage}
                   alt={place.title}
                   className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-110"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement
-                    if (target.src !== fallbackImage) {
-                      target.src = fallbackImage
-                    }
-                  }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                 <Badge

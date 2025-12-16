@@ -6,9 +6,9 @@ export const TUNISIAN_GOVERNORATES = [
   "Nabeul",
   "Zaghouan",
   "Bizerte",
-  "Béja",
+  "Beja",
   "Jendouba",
-  "Le Kef",
+  "Kef",
   "Siliana",
   "Sousse",
   "Monastir",
@@ -17,12 +17,12 @@ export const TUNISIAN_GOVERNORATES = [
   "Kairouan",
   "Kasserine",
   "Sidi Bouzid",
-  "Gabès",
-  "Médenine",
+  "Gabes",
+  "Mednine",
   "Tataouine",
   "Gafsa",
   "Tozeur",
-  "Kébili",
+  "Kebili",
 ]
 
 export const CATEGORIES = [

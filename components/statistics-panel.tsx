@@ -106,7 +106,7 @@ export function StatisticsPanel() {
           <CardHeader className="pb-2">
             <CardDescription className="flex items-center gap-2">
               <MapPin className="h-4 w-4" />
-              Total Places
+              Total d'endroits
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -118,13 +118,13 @@ export function StatisticsPanel() {
           <CardHeader className="pb-2">
             <CardDescription className="flex items-center gap-2">
               <Star className="h-4 w-4" />
-              Average Rating
+              Note moyenne
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{stats.aggregates.averageRating}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              {stats.aggregates.topRatedCount.toLocaleString()} places with 4.5+ rating
+              {stats.aggregates.topRatedCount.toLocaleString()} endroits avec note 4.5+
             </p>
           </CardContent>
         </Card>
@@ -133,13 +133,13 @@ export function StatisticsPanel() {
           <CardHeader className="pb-2">
             <CardDescription className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4" />
-              Average Reviews
+              Avis moyens
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{stats.aggregates.averageReviews.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              {stats.aggregates.highlyReviewedCount.toLocaleString()} places with 100+ reviews
+              {stats.aggregates.highlyReviewedCount.toLocaleString()} endroits avec 100+ avis
             </p>
           </CardContent>
         </Card>
@@ -148,13 +148,13 @@ export function StatisticsPanel() {
           <CardHeader className="pb-2">
             <CardDescription className="flex items-center gap-2">
               <Phone className="h-4 w-4" />
-              Contact Info
+              Infos de contact
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{stats.contactInfo.percentageWithBoth}%</div>
             <p className="text-xs text-muted-foreground mt-1">
-              with phone & website
+              avec téléphone et site web
             </p>
           </CardContent>
         </Card>
@@ -165,8 +165,8 @@ export function StatisticsPanel() {
         {/* Categories */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Categories Distribution</CardTitle>
-            <CardDescription>Top categories by number of places</CardDescription>
+            <CardTitle className="text-lg">Distribution des catégories</CardTitle>
+            <CardDescription>Principales catégories par nombre d'endroits</CardDescription>
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-[300px] pr-4">
@@ -203,8 +203,8 @@ export function StatisticsPanel() {
         {/* Governorates */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Governorates Distribution</CardTitle>
-            <CardDescription>Top governorates by number of places</CardDescription>
+            <CardTitle className="text-lg">Distribution des gouvernorats</CardTitle>
+            <CardDescription>Principaux gouvernorats par nombre d'endroits</CardDescription>
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-[300px] pr-4">
@@ -244,27 +244,27 @@ export function StatisticsPanel() {
         {/* Contact Info Details */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Contact Information</CardTitle>
+            <CardTitle className="text-lg">Informations de contact</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Phone className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">With Phone</span>
+                <span className="text-sm">Avec téléphone</span>
               </div>
               <Badge>{stats.contactInfo.withPhone.toLocaleString()}</Badge>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Globe className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">With Website</span>
+                <span className="text-sm">Avec site web</span>
               </div>
               <Badge>{stats.contactInfo.withWebsite.toLocaleString()}</Badge>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">With Both</span>
+                <span className="text-sm">Avec les deux</span>
               </div>
               <Badge variant="default">{stats.contactInfo.withBoth.toLocaleString()}</Badge>
             </div>
@@ -274,21 +274,21 @@ export function StatisticsPanel() {
         {/* Rating Stats */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Rating Statistics</CardTitle>
+            <CardTitle className="text-lg">Statistiques des notes</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm">Maximum Rating</span>
+              <span className="text-sm">Note maximale</span>
               <Badge variant="default">{stats.aggregates.maxRating}</Badge>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm">Minimum Rating</span>
+              <span className="text-sm">Note minimale</span>
               <Badge variant="outline">{stats.aggregates.minRating}</Badge>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Award className="h-4 w-4 text-yellow-500" />
-                <span className="text-sm">Top Rated (4.5+)</span>
+                <span className="text-sm">Mieux notés (4.5+)</span>
               </div>
               <Badge className="bg-yellow-500 text-white">
                 {stats.aggregates.topRatedPercentage}%
@@ -300,21 +300,21 @@ export function StatisticsPanel() {
         {/* Review Stats */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Review Statistics</CardTitle>
+            <CardTitle className="text-lg">Statistiques des avis</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm">Maximum Reviews</span>
+              <span className="text-sm">Maximum d'avis</span>
               <Badge variant="default">{stats.aggregates.maxReviews?.toLocaleString()}</Badge>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm">Minimum Reviews</span>
+              <span className="text-sm">Minimum d'avis</span>
               <Badge variant="outline">{stats.aggregates.minReviews?.toLocaleString()}</Badge>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <MessageSquare className="h-4 w-4 text-blue-500" />
-                <span className="text-sm">Highly Reviewed (100+)</span>
+                <span className="text-sm">Très commentés (100+)</span>
               </div>
               <Badge className="bg-blue-500 text-white">
                 {stats.aggregates.highlyReviewedPercentage}%
