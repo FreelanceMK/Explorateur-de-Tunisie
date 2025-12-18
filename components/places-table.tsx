@@ -237,8 +237,8 @@ export function PlacesTable({
           <TableBody>
             {places.map((place, index) => {
               const categoryColors = CATEGORY_COLORS[place.category] || DEFAULT_CATEGORY_COLOR
-              // Generate stable unique key for React
-              const uniqueKey = place.placeId || place.cid || place.fid || `${index}-${place.title}`
+              // Generate stable unique key for React - use index to guarantee uniqueness
+              const uniqueKey = place.id || `${index}-${place.placeId || place.cid || place.fid || place.title}`
               return (
                 <TableRow
                   key={uniqueKey}
