@@ -48,5 +48,5 @@ export const CATEGORY_IMAGES: Record<string, string> = {
   Restaurant: "/elegant-restaurant-dining-room.jpg",
   "Restauration rapide": "/modern-fast-food-interior.png",
   Hotel: "/luxury-hotel-lobby-chandelier.png",
-  Boucherie: "/traditional-Boucherie-shop-with-meat-display.jpg",
+  Boucherie: "/traditional-butcher-shop-with-meat-display.jpg",
 }

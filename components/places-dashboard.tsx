@@ -202,56 +202,89 @@ export function PlacesDashboard() {
   }, [filters])
 
   const handleExport = useCallback(
-    (format: "excel" | "json") => {
-      const dataToExport = places
+    async (format: "excel" | "json") => {
+      try {
+        // Fetch ALL places with current filters but no pagination
+        const params = new URLSearchParams()
 
-      if (format === "json") {
-        const blob = new Blob([JSON.stringify(dataToExport, null, 2)], {
-          type: "application/json",
-        })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement("a")
-        a.href = url
-        a.download = "tunisia-places.json"
-        a.click()
-        URL.revokeObjectURL(url)
-      } else {
-        // Prepare data for Excel
-        const headers = ["Title", "Category", "Governorate", "Address", "Rating", "Reviews", "Phone", "Website"]
-        const excelData = dataToExport.map((place) => ({
-          Title: place.title,
-          Category: place.category,
-          Governorate: place.governorate,
-          Address: place.address,
-          Rating: place.rating,
-          Reviews: place.reviews,
-          Phone: place.phoneNumber || "",
-          Website: place.website || "",
-        }))
+        // Add sort params
+        params.append('sortBy', sort.field)
+        params.append('sortOrder', sort.direction)
 
-        // Create workbook and worksheet
-        const worksheet = XLSX.utils.json_to_sheet(excelData)
-        const workbook = XLSX.utils.book_new()
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Places")
+        // Add filter params (same as fetchPlaces but without pagination)
+        if (filters.search) params.append('search', filters.search)
+        if (filters.categories.length > 0) {
+          filters.categories.forEach(cat => params.append('category', cat))
+        }
+        if (filters.governorates.length > 0) {
+          filters.governorates.forEach(gov => params.append('governorate', gov))
+        }
+        if (filters.ratingMin > 0) params.append('ratingMin', filters.ratingMin.toString())
+        if (filters.ratingMax < 5) params.append('ratingMax', filters.ratingMax.toString())
+        if (filters.reviewsMin > 0) params.append('reviewsMin', filters.reviewsMin.toString())
+        if (filters.reviewsMax < 10000) params.append('reviewsMax', filters.reviewsMax.toString())
+        if (filters.hasPhone) params.append('hasPhone', 'true')
+        if (filters.hasWebsite) params.append('hasWebsite', 'true')
 
-        // Set column widths for better formatting
-        const columnWidths = [
-          { wch: 30 }, // Title
-          { wch: 20 }, // Category
-          { wch: 15 }, // Governorate
-          { wch: 40 }, // Address
-          { wch: 8 },  // Rating
-          { wch: 10 }, // Reviews
-          { wch: 15 }, // Phone
-          { wch: 30 }, // Website
-        ]
-        worksheet["!cols"] = columnWidths
+        // Don't add pagination params to get all results
+        params.append('limit', '999999') // Large number to get all results
 
-        // Generate Excel file and trigger download
-        XLSX.writeFile(workbook, "tunisia-places.xlsx")
+        const response = await fetch(`/api/places?${params.toString()}`)
+        if (!response.ok) throw new Error('Failed to fetch all places for export')
+
+        const data = await response.json()
+        const dataToExport = data.places || []
+
+        if (format === "json") {
+          const blob = new Blob([JSON.stringify(dataToExport, null, 2)], {
+            type: "application/json",
+          })
+          const url = URL.createObjectURL(blob)
+          const a = document.createElement("a")
+          a.href = url
+          a.download = "tunisia-places.json"
+          a.click()
+          URL.revokeObjectURL(url)
+        } else {
+          // Prepare data for Excel
+          const excelData = dataToExport.map((place: Place) => ({
+            Title: place.title,
+            Category: place.category,
+            Governorate: place.governorate,
+            Address: place.address,
+            Rating: place.rating,
+            Reviews: place.reviews,
+            Phone: place.phoneNumber || "",
+            Website: place.website || "",
+          }))
+
+          // Create workbook and worksheet
+          const worksheet = XLSX.utils.json_to_sheet(excelData)
+          const workbook = XLSX.utils.book_new()
+          XLSX.utils.book_append_sheet(workbook, worksheet, "Places")
+
+          // Set column widths for better formatting
+          const columnWidths = [
+            { wch: 30 }, // Title
+            { wch: 20 }, // Category
+            { wch: 15 }, // Governorate
+            { wch: 40 }, // Address
+            { wch: 8 },  // Rating
+            { wch: 10 }, // Reviews
+            { wch: 15 }, // Phone
+            { wch: 30 }, // Website
+          ]
+          worksheet["!cols"] = columnWidths
+
+          // Generate Excel file and trigger download
+          XLSX.writeFile(workbook, "tunisia-places.xlsx")
+        }
+      } catch (error) {
+        console.error('Error exporting data:', error)
+        alert('Failed to export data. Please try again.')
       }
     },
-    [places],
+    [sort, filters],
   )
 
   return (
