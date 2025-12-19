@@ -1,6 +1,6 @@
 "use client"
 
-import { Download, Filter, MapPin, LayoutGrid, List, LogOut, Smartphone, Shield, BarChart3 } from "lucide-react"
+import { Download, Filter, MapPin, LayoutGrid, List, LogOut, Smartphone, Shield, BarChart3, FileUp, Trash2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
@@ -36,6 +36,8 @@ interface DashboardHeaderProps {
   showExportButton: boolean
   onToggleStats?: () => void
   showStats?: boolean
+  onRemoveDuplicates?: () => void
+  onImportExcel?: () => void
 }
 
 export function DashboardHeader({
@@ -49,6 +51,8 @@ export function DashboardHeader({
   showExportButton,
   onToggleStats,
   showStats = false,
+  onRemoveDuplicates,
+  onImportExcel,
 }: DashboardHeaderProps) {
   const router = useRouter()
   const { isAdminMode, activateAdminMode, deactivateAdminMode } = useAdmin()
@@ -305,6 +309,34 @@ export function DashboardHeader({
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => onExport("excel")}>Export as Excel</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onExport("json")}>Export as JSON</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+
+          {isAdminMode && (onRemoveDuplicates || onImportExcel) && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2 bg-transparent">
+                  <Shield className="h-4 w-4" />
+                  <span className="hidden sm:inline">Admin Tools</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {onRemoveDuplicates && (
+                  <DropdownMenuItem onClick={onRemoveDuplicates}>
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Remove Duplicates
+                  </DropdownMenuItem>
+                )}
+                {onImportExcel && (
+                  <>
+                    {onRemoveDuplicates && <DropdownMenuSeparator />}
+                    <DropdownMenuItem onClick={onImportExcel}>
+                      <FileUp className="mr-2 h-4 w-4" />
+                      Import Excel
+                    </DropdownMenuItem>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           )}

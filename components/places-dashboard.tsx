@@ -15,6 +15,9 @@ import type { Place, FilterState, SortState } from "@/lib/types"
 import * as XLSX from "xlsx"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
+import { toast } from "sonner"
+import { RemoveDuplicatesModal } from "./remove-duplicates-modal"
+import { ImportExcelModal } from "./import-excel-modal"
 
 const initialFilters: FilterState = {
   search: "",
@@ -57,6 +60,25 @@ export function PlacesDashboard() {
     withPhone: number
     withWebsite: number
   } | null>(null)
+
+  // State for Remove Duplicates feature
+  const [isRemoveDuplicatesOpen, setIsRemoveDuplicatesOpen] = useState(false)
+  const [duplicatesInfo, setDuplicatesInfo] = useState<{
+    totalDuplicateGroups: number
+    totalPlacesToRemove: number
+    groups: Array<{
+      cid: string
+      count: number
+      keepId: string
+      removeIds: string[]
+    }>
+  } | null>(null)
+  const [isRemovingDuplicates, setIsRemovingDuplicates] = useState(false)
+
+  // State for Excel Import feature
+  const [isImportOpen, setIsImportOpen] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [isImporting, setIsImporting] = useState(false)
 
   // Fetch places from API with filters and pagination
   const fetchPlaces = useCallback(async () => {
@@ -246,16 +268,24 @@ export function PlacesDashboard() {
           a.click()
           URL.revokeObjectURL(url)
         } else {
-          // Prepare data for Excel
+          // Prepare data for Excel with ALL fields for round-trip import
           const excelData = dataToExport.map((place: Place) => ({
-            Title: place.title,
-            Category: place.category,
-            Governorate: place.governorate,
-            Address: place.address,
-            Rating: place.rating,
-            Reviews: place.reviews,
-            Phone: place.phoneNumber || "",
-            Website: place.website || "",
+            id: place.id || "",
+            placeId: place.placeId || "",
+            cid: place.cid || "",
+            title: place.title,
+            category: place.category,
+            governorate: place.governorate,
+            address: place.address,
+            latitude: place.latitude,
+            longitude: place.longitude,
+            rating: place.rating,
+            reviews: place.reviews,
+            phoneNumber: place.phoneNumber || "",
+            website: place.website || "",
+            thumbnailUrl: place.thumbnailUrl || "",
+            priceRange: place.priceRange || "",
+            position: place.position || 0,
           }))
 
           // Create workbook and worksheet
@@ -265,14 +295,22 @@ export function PlacesDashboard() {
 
           // Set column widths for better formatting
           const columnWidths = [
-            { wch: 30 }, // Title
-            { wch: 20 }, // Category
-            { wch: 15 }, // Governorate
-            { wch: 40 }, // Address
-            { wch: 8 },  // Rating
-            { wch: 10 }, // Reviews
-            { wch: 15 }, // Phone
-            { wch: 30 }, // Website
+            { wch: 25 }, // id
+            { wch: 25 }, // placeId
+            { wch: 20 }, // cid
+            { wch: 35 }, // title
+            { wch: 20 }, // category
+            { wch: 15 }, // governorate
+            { wch: 45 }, // address
+            { wch: 12 }, // latitude
+            { wch: 12 }, // longitude
+            { wch: 8 },  // rating
+            { wch: 10 }, // reviews
+            { wch: 18 }, // phoneNumber
+            { wch: 35 }, // website
+            { wch: 40 }, // thumbnailUrl
+            { wch: 15 }, // priceRange
+            { wch: 10 }, // position
           ]
           worksheet["!cols"] = columnWidths
 
@@ -287,6 +325,108 @@ export function PlacesDashboard() {
     [sort, filters],
   )
 
+  // Handler for Remove Duplicates
+  const handleRemoveDuplicatesClick = useCallback(async () => {
+    try {
+      const response = await fetch('/api/places/duplicates')
+      if (!response.ok) throw new Error('Failed to fetch duplicates')
+
+      const data = await response.json()
+      setDuplicatesInfo(data)
+      setIsRemoveDuplicatesOpen(true)
+    } catch (error) {
+      console.error('Error fetching duplicates:', error)
+      toast.error('Failed to fetch duplicates')
+    }
+  }, [])
+
+  const handleRemoveDuplicatesConfirm = useCallback(async () => {
+    if (!duplicatesInfo) return
+
+    setIsRemovingDuplicates(true)
+    try {
+      // Collect all IDs to delete from all duplicate groups
+      const idsToDelete = duplicatesInfo.groups.flatMap(group => group.removeIds)
+
+      const response = await fetch('/api/places/duplicates', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idsToDelete })
+      })
+
+      if (!response.ok) throw new Error('Failed to remove duplicates')
+
+      const result = await response.json()
+      toast.success(`Successfully removed ${result.deletedCount} duplicate places!`)
+
+      // Refresh places list
+      fetchPlaces()
+      fetchAllPlacesForFilters()
+
+      setIsRemoveDuplicatesOpen(false)
+      setDuplicatesInfo(null)
+    } catch (error) {
+      console.error('Error removing duplicates:', error)
+      toast.error('Failed to remove duplicates')
+    } finally {
+      setIsRemovingDuplicates(false)
+    }
+  }, [duplicatesInfo, fetchPlaces, fetchAllPlacesForFilters])
+
+  // Handler for Excel Import
+  const handleImportClick = useCallback(() => {
+    setIsImportOpen(true)
+  }, [])
+
+  const handleFileSelect = useCallback((file: File) => {
+    setSelectedFile(file)
+  }, [])
+
+  const handleImportConfirm = useCallback(async () => {
+    if (!selectedFile) return
+
+    setIsImporting(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', selectedFile)
+
+      const response = await fetch('/api/places/import', {
+        method: 'POST',
+        body: formData
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to import Excel file')
+      }
+
+      const result = await response.json()
+
+      // Show success message with stats
+      toast.success(
+        `Import completed! Created: ${result.stats.created}, Updated: ${result.stats.updated}, Deleted: ${result.stats.deleted}, Skipped: ${result.stats.skipped}`
+      )
+
+      // Show errors if any
+      if (result.errors && result.errors.length > 0) {
+        toast.warning(`${result.errors.length} rows had errors. Check console for details.`)
+        console.error('Import errors:', result.errors)
+      }
+
+      // Refresh places list
+      fetchPlaces()
+      fetchAllPlacesForFilters()
+
+      setIsImportOpen(false)
+      setSelectedFile(null)
+    } catch (error: any) {
+      console.error('Error importing Excel:', error)
+      toast.error(error.message || 'Failed to import Excel file')
+    } finally {
+      setIsImporting(false)
+    }
+  }, [selectedFile, fetchPlaces, fetchAllPlacesForFilters])
+
   return (
     <div className="min-h-screen bg-background">
       <DashboardHeader
@@ -300,6 +440,8 @@ export function PlacesDashboard() {
         showExportButton={showExportButton}
         onToggleStats={() => setShowStats(!showStats)}
         showStats={showStats}
+        onRemoveDuplicates={handleRemoveDuplicatesClick}
+        onImportExcel={handleImportClick}
       />
 
       {showStats ? (
@@ -309,7 +451,7 @@ export function PlacesDashboard() {
           <FilterSidebar
             filters={filters}
             allPlaces={allPlacesForFilters}
-            filterStats={filterStats}
+            filterStats={filterStats || undefined}
             onFiltersChange={(newFilters) => {
               setFilters(newFilters)
               setCurrentPage(1)
@@ -373,7 +515,7 @@ export function PlacesDashboard() {
         onClose={() => setIsMobileFilterOpen(false)}
         filters={filters}
         allPlaces={allPlacesForFilters}
-        filterStats={filterStats}
+        filterStats={filterStats || undefined}
         onFiltersChange={(newFilters) => {
           setFilters(newFilters)
           setCurrentPage(1)
@@ -393,6 +535,23 @@ export function PlacesDashboard() {
         onOpenChange={setIsEditModalOpen}
         place={editingPlace}
         mode="edit"
+      />
+
+      <RemoveDuplicatesModal
+        open={isRemoveDuplicatesOpen}
+        onOpenChange={setIsRemoveDuplicatesOpen}
+        duplicatesInfo={duplicatesInfo}
+        onConfirm={handleRemoveDuplicatesConfirm}
+        isLoading={isRemovingDuplicates}
+      />
+
+      <ImportExcelModal
+        open={isImportOpen}
+        onOpenChange={setIsImportOpen}
+        onFileSelect={handleFileSelect}
+        onImport={handleImportConfirm}
+        selectedFile={selectedFile}
+        isLoading={isImporting}
       />
 
       {isAdminMode && (
