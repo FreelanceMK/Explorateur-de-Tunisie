@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import prisma from '@/lib/prisma'
+import { prisma } from '@/lib/prisma'
 import * as XLSX from 'xlsx'
 import { CATEGORIES, TUNISIAN_GOVERNORATES } from '@/lib/constants'
 
